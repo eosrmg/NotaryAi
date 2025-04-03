@@ -149,7 +149,7 @@ const updateRateAndDate = () => {
 
 
 const isDatePickerDialogOpen = ref(false); // Controls if the date picker dialog is open
-const selectedDate = ref<string | null>(null);  // Holds the selected date
+const selectedDate = ref<CalendarDate | undefined>(undefined);
 const rateForSelectedDate = ref(null);  // Holds the exchange rate for the selected date
 const exchangeRates = ref([]);
 
@@ -164,7 +164,7 @@ function closeDatePickerDialog() {
 }
 
 // Handle the date selection from the calendar
-function handleDateSelection(date: string) {
+function handleDateSelection(date: CalendarDate | undefined) {
     // Log the selected date for debugging
     console.log('Selected Date:', date);
 
