@@ -10,7 +10,9 @@ class SalesController extends Controller
 {
     public function index()
     {
-        return Inertia::render('Calculator');
+        return Inertia::render('CalculatorOnorariu/Calculator', [
+           
+        ]);
     }
 
 

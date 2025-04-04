@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, onMounted, watch } from 'vue';
@@ -23,7 +23,7 @@ import {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Calculator',
+        title: 'Vanzare',
         href: '/',
     },
 ];
@@ -45,8 +45,8 @@ const form = useForm<{
     selectedRateOption: string;
     bnr_rate: string;
     custom_rate: string;
-    rate_date: '';
-    current_date: '';
+    rate_date: string;
+    current_date: string;
     is_pf: boolean;
     is_one_percent: boolean;
     apply_impozit: boolean;
@@ -63,6 +63,10 @@ const form = useForm<{
     is_one_percent: true,
     apply_impozit: false,
 });
+
+
+
+
 
 const result = ref<CalculationResult | null>(null);
 
@@ -118,9 +122,8 @@ onMounted(async () => {
         try {
             const response = await axios.get('/exchange-rate');
             if (response.data) {
-                // Save the entire array of rates
+
                 exchangeRates.value = response.data;
-                // Optionally, set the initial rate
                 form.bnr_rate = exchangeRates.value[0].rate; // Assuming the first item in the array is the latest
                 form.rate_date = exchangeRates.value[0].date; // Save the fetched date here
                 form.current_rate = form.bnr_rate;
@@ -141,6 +144,12 @@ const updateRateAndDate = () => {
         form.rate_date = form.current_date; // Ensure the date is preserved
     }
 
+    if (form.selectedRateOption === 'custom' && form.current_rate) {
+        // Format the rate to have 4 zeros after the decimal
+        const formattedValue = parseFloat(form.current_rate).toFixed(4);
+        form.current_rate = formattedValue;
+    }
+
     // Close the dialog after updating the rate and date
     closeDialog();
 }
@@ -149,9 +158,24 @@ const updateRateAndDate = () => {
 
 
 const isDatePickerDialogOpen = ref(false); // Controls if the date picker dialog is open
-const selectedDate = ref<CalendarDate | undefined>(undefined);
-const rateForSelectedDate = ref(null);  // Holds the exchange rate for the selected date
-const exchangeRates = ref([]);
+const selectedDate = computed({
+    get: () => form.rate_date ? parseDate(form.rate_date) : undefined,
+    set: (val) => {
+        if (val) {
+            form.rate_date = val.toString(); // Ensure you format it correctly if needed
+        } else {
+            form.rate_date = '';
+        }
+    }
+});
+const rateForSelectedDate = ref<string | null>(null);  // Holds the exchange rate for the selected date
+
+interface ExchangeRate {
+    rate: string;
+    date: string;
+}
+
+const exchangeRates = ref<ExchangeRate[]>([]);
 
 // Function to open the date picker dialog
 function openDatePickerDialog() {
@@ -167,7 +191,7 @@ function closeDatePickerDialog() {
 function handleDateSelection(date: CalendarDate | undefined) {
     // Log the selected date for debugging
     console.log('Selected Date:', date);
-
+    console.log('Selected Date:', selectedDate.value);
     // Check if the selected date is valid (not undefined or empty)
     if (date) {
         selectedDate.value = date;
@@ -184,7 +208,7 @@ function getRateForSelectedDate() {
         console.log('Exchange Rates:', exchangeRates.value);  // Log the array of exchange rates
 
         // Format selected date to ensure it matches the format in exchangeRates (e.g., 'YYYY-MM-DD')
-        const formattedSelectedDate = formatDate(selectedDate.value);
+        const formattedSelectedDate = formatDate(selectedDate.value.toString());
 
         // Check if exchangeRates.value is an array
         if (Array.isArray(exchangeRates.value)) {
@@ -232,11 +256,37 @@ async function confirmSelectedDate() {
 function cancelDateSelection() {
     closeDatePickerDialog(); // Close the dialog without doing anything
 }
+
+
+const formattedAmount = computed({
+    get() {
+        if (!form.amount) return '';
+        return new Intl.NumberFormat('en-US').format(Number(form.amount));
+    },
+    set(value: string) {
+        // Remove all commas or spaces before converting back to a number
+        const numericValue = Number(value.replace(/[\s,]/g, ''));
+        if (!isNaN(numericValue)) {
+            form.amount = numericValue.toString();
+        }
+    }
+});
+
+// Event handler to update amount when typing
+function handleAmountInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    formattedAmount.value = input.value;
+}
+
+// Computed property to format the amount with commas
+const formattedAmountInRON = computed(() => {
+    if (!amountInRON.value) return '0';
+    return new Intl.NumberFormat('en-US').format(Number(amountInRON.value));
+});
+
+
+
 </script>
-
-
-
-
 <template>
 
     <Head title="Dashboard" />
@@ -244,15 +294,32 @@ function cancelDateSelection() {
     <AppLayout :breadcrumbs="breadcrumbs">
 
 
+        <!-- Sub-navigation links styled with Tailwind CSS -->
+        <div class="navigation space-x-4 flex justify-start items-center pl-4 rounded-lg shadow-md">
+            <Link :href="route('calculator')"
+                class="btn btn-outline btn-primary rounded-lg pl-1 pr-1 hover:bg-blue-500 hover:text-white transition duration-200">
+            Vanzare
+            </Link>
+            <Link :href="route('ipoteca')"
+                class="btn btn-outline btn-primary rounded-lg pl-1 pr-1 hover:bg-blue-500 hover:text-white transition duration-200">
+            Ipoteca
+            </Link>
+            <Link :href="route('succesiune')"
+                class="btn btn-outline btn-primary rounded-lg pl-1 pr-1 hover:bg-blue-500 hover:text-white transition duration-200">
+            Succesiune
+            </Link>
+        </div>
+
         <Dialog :open="isDialogOpen" @onOpenChange="(value: boolean) => isDialogOpen = value">
+
 
             <div class="flex h-full flex-1 flex-col gap-4 rounded-xl pl-4">
                 <div class="p-4 w-full max-w-5xl justify-start h-fit">
-                    <h1 class="text-xl font-bold mb-4 text-center">Vanzare</h1>
+
 
                     <form @submit.prevent="calculateOnorariu" class="space-y-4">
 
-                        <div class="flex h-full flex-1 flex-col bg-gray-800 gap-4 rounded-xl p-4">
+                        <div class="flex h-full flex-1 flex-col bg-gray-800 gap-2 rounded-xl p-2">
 
                             <div class="grid auto-rows-min gap-1 md:grid-cols-2">
 
@@ -298,8 +365,8 @@ function cancelDateSelection() {
 
 
                             <div class="relative flex items-center w-full ">
-                                <Input v-model="form.amount" type="number"
-                                    class="w-full bg-white text-gray-800 outline-none text-left  pr-14" />
+                                <Input v-model="formattedAmount" @input="handleAmountInput" type="text"
+                                    class="w-full bg-white text-gray-800 outline-none text-left pr-14" />
                                 <span class="absolute right-4 text-gray-800">{{ form.is_eur ? 'EUR' : 'RON' }}</span>
                             </div>
 
@@ -307,7 +374,7 @@ function cancelDateSelection() {
                             <div v-if="form.is_eur" class="flex items-center justify-s">
                                 <div
                                     class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full flex items-center justify-between text-gray-700">
-                                    <span class="text-right text-gray-800 text-sm">{{ amountInRON }}</span>
+                                    <span class="text-right text-gray-800 text-sm">{{ formattedAmountInRON }}</span>
                                     <span class="ml-2 text-gray-800">RON</span>
                                 </div>
                             </div>
@@ -432,13 +499,6 @@ function cancelDateSelection() {
 
 
                             </div>
-
-
-
-
-
-
-
                         </div>
 
                     </form>
@@ -502,7 +562,7 @@ function cancelDateSelection() {
                             <div class="mb-4">
                                 <!-- Shadcn UI Calendar (Date Picker) -->
                                 <Calendar v-model="selectedDate" :max-value="today(getLocalTimeZone())"
-                                    @update:model-value="handleDateSelection" />
+                                    @update="handleDateSelection" />
                             </div>
                             <!-- Buttons -->
                             <div class="flex space-x-4 mt-6 justify-center">

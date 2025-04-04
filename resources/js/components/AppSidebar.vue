@@ -25,6 +25,7 @@ const mainNavItems: NavItem[] = [
         title: 'Calculator Onorariu',
         href: '/calculator',
         icon: Calculator,
+      
     },
 
     

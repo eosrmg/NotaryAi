@@ -7,6 +7,9 @@ use Inertia\Inertia;
 
 Route::get('/', function () {return Inertia::render('Dashboard');})->name('dashboard');
 
+Route::get('/ipoteca', function () {return Inertia::render('CalculatorOnorariu/Ipoteca');})->name('ipoteca');
+Route::get('/succesiune', function () {return Inertia::render('CalculatorOnorariu/Succesiune');})->name('succesiune');
+
 
 
 Route::get('/calculator', [SalesController::class, 'index'])->name('calculator');
